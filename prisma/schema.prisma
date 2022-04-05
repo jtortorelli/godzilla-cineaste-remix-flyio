@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Character {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  displayName String
+  showcased   Boolean
+  tenant      Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  portrayedBy Role[]
+}
+
+model Film {
+  id            String           @id @default(cuid())
+  slug          String           @unique
+  title         String
+  releaseDate   DateTime         @db.Date
+  runtime       Int
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  showcased     Boolean
+  tenant        Int
+  aliases       Json[]           @db.Json
+  originalTitle Json?            @db.Json
+  posterUrls    Json[]           @db.Json
+  workId        String?
+  basedOn       Work?            @relation(fields: [workId], references: [id])
+  entryOf       FilmSeriesEntry?
+  cast          Role[]
+  staff         Staff[]
+  studios       Studio[]
+}
+
+model FilmSeries {
+  id      String            @id
+  slug    String            @unique
+  name    String
+  entries FilmSeriesEntry[]
+}
+
+model FilmSeriesEntry {
+  entryNumber  Int
+  filmId       String     @unique
+  filmSeriesId String
+  film         Film       @relation(fields: [filmId], references: [id])
+  filmSeries   FilmSeries @relation(fields: [filmSeriesId], references: [id])
+
+  @@id([filmSeriesId, filmId])
+}
+
+model Person {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  displayName String
+  sortName    String
+  showcased   Boolean
+  tenant      Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  appearedIn  Role[]
+  workedOn    Staff[]
+  wrote       Work[]
+}
+
+model Role {
+  id          String    @id @default(cuid())
+  name        String
+  order       Int
+  qualifiers  String[]
+  uncredited  Boolean
+  group       String
+  avatarUrl   String
+  actorAlias  String
+  personId    String
+  filmId      String
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id])
+  film        Film      @relation(fields: [filmId], references: [id])
+  actor       Person    @relation(fields: [personId], references: [id])
+}
+
+model Staff {
+  role     String
+  order    Int
+  filmId   String
+  personId String
+  film     Film   @relation(fields: [filmId], references: [id])
+  member   Person @relation(fields: [personId], references: [id])
+
+  @@id([filmId, personId, role])
+}
+
+model Studio {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  films     Film[]
+}
+
+model Work {
+  id        String   @id @default(cuid())
+  format    Format
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  basisFor  Film[]
+  authors   Person[]
+}
+
+enum Format {
+  NOVEL
+  MANGA
+}
